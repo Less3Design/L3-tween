@@ -14,12 +14,11 @@ public class TweenObject
     public Ease easeType;
     public TweenUpdateType deltaTimeType;
 
-    public float t => active ? Mathf.Clamp01(elapsedTime / duration) : 0f;
-
-    // OnUpdate is guaranteed to be called OnComplete with the final value
     public Action<float> onUpdate;
     public Action onComplete;
     public Action onCancel;
+
+    public float t => active ? Mathf.Clamp01(elapsedTime / duration) : 0f;
 
     public TweenObject(ushort id)
     {
@@ -43,7 +42,6 @@ public class TweenObject
 
     public void Update(float deltaTime)
     {
-        // if (!active) return; // checked in TweenManager
         elapsedTime += deltaTime;
         float t = Mathf.Clamp01(elapsedTime / duration);
         float value = Mathf.LerpUnclamped(fromValue, toValue, t);
@@ -60,7 +58,6 @@ public class TweenObject
     public void Reset()
     {
         // release actions
-        // other fields don't need to be reset
         onUpdate = null;
         onComplete = null;
         onCancel = null;

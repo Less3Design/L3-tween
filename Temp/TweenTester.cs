@@ -21,14 +21,8 @@ public class TweenTester : MonoBehaviour
 
     private void Update()
     {
-        //on butotn press
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            Test();
-        }
-
-        int c = Random.Range(0, 20);
-        /*
+        return;
+        int c = Random.Range(0, 10);
         for (int i = 0; i < c; i++)
         {
             int index = Random.Range(0, instances.Count);
@@ -41,16 +35,5 @@ public class TweenTester : MonoBehaviour
                 t.transform.position = Vector3.Lerp(startPos, randPos, v);
             });
         }
-        */
-        c = Random.Range(0, 90);
-        for (int i = 0; i < c; i++)
-        {
-            Tween.Create(1f);
-        }
-
-    }
-
-    public void Test()
-    {
     }
 }

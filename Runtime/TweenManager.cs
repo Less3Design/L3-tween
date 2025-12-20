@@ -34,17 +34,10 @@ public class TweenManager : MonoBehaviour
         {
             tweenPool[i] = new TweenObject((ushort)i);
         }
-
-        if (tweenPoolVisualizer != null)
-        {
-            tweenPoolVisualizer.Release();
-            tweenPoolVisualizer = null;
-        }
     }
 
     private void Update()
     {
-        // just iterate everything every frame 🤷
         for (int i = 0; i < tweenPool.Length; i++)
         {
             TweenObject obj = tweenPool[i];
@@ -117,6 +110,12 @@ public class TweenManager : MonoBehaviour
         if (tweenPoolVisualizer != null && tweenPoolVisualizer.width * tweenPoolVisualizer.height >= TWEEN_POOL)
         {
             return;
+        }
+
+        if (tweenPoolVisualizer != null)
+        {
+            tweenPoolVisualizer.Release();
+            tweenPoolVisualizer = null;
         }
 
         //pick a square resolution that will fit all tweens, e.g. 64x32 = 2048

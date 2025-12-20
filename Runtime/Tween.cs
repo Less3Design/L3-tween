@@ -15,7 +15,7 @@ public struct Tween
         return New(0f, 1f, duration);
     }
 
-    static Tween t;
+    static Tween t;// avoid some gc (i think?)
 
     public Tween New(float from, float to, float duration)
     {
@@ -32,6 +32,8 @@ public struct Tween
         version = 0;
         return this;
     }
+
+    // * Set Functions
 
     public Tween SetEase(Ease ease)
     {
