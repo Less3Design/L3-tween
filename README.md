@@ -1,8 +1,12 @@
-# L3 Tween
-A barebones tween system for animating anything.
+<img width="6904" height="1380" alt="Frame 57" src="https://github.com/user-attachments/assets/e40c77f2-d796-474d-881f-fd9876092b24" />
 
+## Install
+Add to your Unity project as a [git package using the package manager](https://docs.unity3d.com/6000.3/Documentation/Manual/upm-ui-giturl.html).
+```
+https://github.com/Less3Design/L3-tween.git
+```
 ## Usage
-This system is based around exclusively supporting the way I personally like to write tweens:
+L3 Tween is based around exclusively supporting the way I like to write tweens:
 ```c#
 private Tween moveTween;
 
