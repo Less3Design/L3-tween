@@ -38,7 +38,7 @@ public class TweenObject
 ```
 
 ## Performance
-It's super good enough. If you need to animate **thousands** of objects at once I reccomend some sort of ECS or custom solution instead.
+It's super good enough. If you need to animate many **thousands** of objects at once I reccomend treating that like a particle system, don't use tweens.
 - TweenObjects are pooled
 - Every object is iterated every frame, but if no tweens are active the process takes < `.01ms`
 - The biggest cost will be whatever you allocate and execute inside tweens
@@ -49,8 +49,6 @@ It's super good enough. If you need to animate **thousands** of objects at once 
 https://github.com/user-attachments/assets/805f029c-1e62-4172-bcfb-62bd22df7682
 
 ## TODO
-- Handle exceptions
 - Init custom pool size
 - Auto pool expansion
-- Easing functions
 - Probably some perf to improve, could avoid iterating inactive tweens every frame

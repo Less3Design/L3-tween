@@ -1,0 +1,18 @@
+{
+    "name": "Less3.Tweening.Editor",
+    "rootNamespace": "Less3.Tweening.Editor",
+    "references": [
+        "GUID:acfa4d638cbd7844c93723d853ddb278"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
