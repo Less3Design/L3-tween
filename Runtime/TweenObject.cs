@@ -8,7 +8,7 @@ namespace Less3.Tweening
         public ushort id;// maps to the index in the tween pool
         public ushort version;// increments each time the tween is released, so stale handles stop matching. never 0.
         public bool active;
-
+        public int activeIndex = -1;// position in the manager's active list, -1 when not running
         public float fromValue;
         public float toValue;
         public float duration;
