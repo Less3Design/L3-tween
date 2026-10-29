@@ -45,7 +45,7 @@ namespace Less3.Tweening
                 TweenObject obj = tweenPool[i];
                 if (obj.active && obj.deltaTimeType != TweenUpdateType.FixedDeltaTime)
                 {
-                    obj.Update(obj.deltaTimeType == TweenUpdateType.DeltaTime ? Time.deltaTime : Time.unscaledDeltaTime);
+                    Tick(obj, obj.deltaTimeType == TweenUpdateType.DeltaTime ? Time.deltaTime : Time.unscaledDeltaTime);
                 }
             }
         }
@@ -57,8 +57,30 @@ namespace Less3.Tweening
                 TweenObject obj = tweenPool[i];
                 if (obj.active && obj.deltaTimeType == TweenUpdateType.FixedDeltaTime)
                 {
-                    obj.Update(Time.fixedDeltaTime);
+                    Tick(obj, Time.fixedDeltaTime);
                 }
+            }
+        }
+
+        private void Tick(TweenObject obj, float deltaTime)
+        {
+            ushort version = obj.version;
+            bool completed = obj.Update(deltaTime);
+            // onUpdate may have cancelled this tween, or cancelled and re-allocated the same slot.
+            // either way it is no longer the tween we were ticking.
+            if (!obj.active || obj.version != version) return;
+            if (!completed) return;
+
+            // release before invoking so the callback sees a dead handle and can safely cancel / allocate
+            System.Action onComplete = obj.onComplete;
+            obj.Release();
+            try
+            {
+                onComplete?.Invoke();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"TweenObject: Exception in onComplete callback: {e}");
             }
         }
 
@@ -74,36 +96,42 @@ namespace Less3.Tweening
                 {
                     allocationIndex = (index + 1) % tweenPool.Length;
                     obj.Allocate(from, to, duration);
-                    return new Tween { id = obj.id, version = obj.version };
+                    return new Tween(obj.id, obj.version);
                 }
             }
             Debug.LogError($"{nameof(TweenManager)}: No free tween slots available!");
-            return new Tween { id = 0, version = 0 };
+            return default;
         }
 
         public void CancelTween(Tween tween)
         {
-            if (TryGetTweenObject(tween, out TweenObject obj) && obj.active)
+            if (TryGetTweenObject(tween, out TweenObject obj))
             {
+                System.Action onCancel = obj.onCancel;
+                obj.Release();
                 try
                 {
-                    obj.onCancel?.Invoke();
+                    onCancel?.Invoke();
                 }
                 catch (System.Exception e)
                 {
                     Debug.LogError($"TweenObject: Exception in onCancel callback: {e}");
                 }
-                obj.active = false;
-                obj.Reset();
             }
         }
 
+        /// <summary>
+        /// Resolve a handle to its live TweenObject. Fails for default handles, stale handles and finished tweens.
+        /// </summary>
         public bool TryGetTweenObject(Tween tween, out TweenObject obj)
         {
-            obj = tweenPool[tween.id];
-            if (obj.version == tween.version)
+            if (tween.version != 0 && tween.id < tweenPool.Length)
             {
-                return true;
+                obj = tweenPool[tween.id];
+                if (obj.active && obj.version == tween.version)
+                {
+                    return true;
+                }
             }
             obj = null;
             return false;

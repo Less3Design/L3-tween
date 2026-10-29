@@ -6,7 +6,7 @@ namespace Less3.Tweening
     public class TweenObject
     {
         public ushort id;// maps to the index in the tween pool
-        public ushort version;// increments each time the tween is reused
+        public ushort version;// increments each time the tween is released, so stale handles stop matching. never 0.
         public bool active;
 
         public float fromValue;
@@ -20,18 +20,17 @@ namespace Less3.Tweening
         public Action onComplete;
         public Action onCancel;
 
-        public float t => active ? Mathf.Clamp01(elapsedTime / duration) : 0f;
+        public float t => active ? Progress() : 0f;
 
         public TweenObject(ushort id)
         {
             this.id = id;
+            this.version = 1;
         }
 
         public void Allocate(float from, float to, float duration)
         {
             active = true;
-            version++;
-            version += (version == 0) ? (ushort)1 : (ushort)0; // avoid zero version
             this.fromValue = from;
             this.toValue = to;
             this.duration = duration;
@@ -40,12 +39,19 @@ namespace Less3.Tweening
             // default values
             this.easeType = Ease.Linear;
             this.deltaTimeType = TweenUpdateType.DeltaTime;
+            onUpdate = null;
+            onComplete = null;
+            onCancel = null;
         }
 
-        public void Update(float deltaTime)
+        /// <summary>
+        /// Advance the tween and invoke onUpdate. Returns true when the tween has reached its end.
+        /// Does not release the tween; the manager does that so callbacks see a dead handle.
+        /// </summary>
+        public bool Update(float deltaTime)
         {
             elapsedTime += deltaTime;
-            float t = Mathf.Clamp01(elapsedTime / duration);
+            float t = Progress();
             float value = Mathf.LerpUnclamped(fromValue, toValue, easeType.Evaluate(t));
             try
             {
@@ -55,28 +61,27 @@ namespace Less3.Tweening
             {
                 Debug.LogError($"TweenObject: Exception in onUpdate callback: {e}");
             }
-
-            if (t >= 1f)
-            {
-                try
-                {
-                    onComplete?.Invoke();
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"TweenObject: Exception in onComplete callback: {e}");
-                }
-                active = false;
-                Reset();
-            }
+            return t >= 1f;
         }
 
-        public void Reset()
+        /// <summary>
+        /// Mark the tween dead and invalidate every handle pointing at it.
+        /// </summary>
+        public void Release()
         {
-            // release actions
+            active = false;
+            version++;
+            if (version == 0) version = 1; // 0 is reserved for invalid handles
             onUpdate = null;
             onComplete = null;
             onCancel = null;
+        }
+
+        private float Progress()
+        {
+            // a zero/negative duration completes on its first tick instead of producing NaN forever
+            if (duration <= 0f) return 1f;
+            return Mathf.Clamp01(elapsedTime / duration);
         }
     }
 
