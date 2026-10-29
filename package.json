@@ -1,7 +1,7 @@
 {
   "name": "less3.tween",
   "displayName": "L3 Tween",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "unity": "6000.0",
   "description": "A bare bones tweening system for Unity.",
   "author": "Less 3",

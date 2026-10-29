@@ -20,6 +20,10 @@ void DoAnimation()
     });
 }
 ```
+`Tween` is a readonly struct handle, so always assign the result of `Cancel()` / `New()`. A handle goes dead the moment its tween completes or is cancelled; `tween.IsActive` tells you which. Setting a callback on a dead handle logs a warning and does nothing.
+
+Callbacks may freely cancel or start tweens, including the tween they belong to. A tween started inside a callback first ticks on the next frame.
+
 Supporting just a single use case lets us keep the business logic to only a couple hundred lines. Here is all the state we mainatin:
 ```csharp
 public class TweenObject
@@ -27,6 +31,7 @@ public class TweenObject
     public ushort id;
     public ushort version;
     public bool active;
+    public int activeIndex;
 
     public float fromValue;
     public float toValue;
@@ -41,18 +46,22 @@ public class TweenObject
 }
 ```
 
+## Pool size
+The pool starts at 512 tweens and doubles whenever it runs out, up to a max of 4096 (hard limit 65536, ids are ushorts). Growth allocates a batch of objects, so set the initial size to your usual peak if you want to avoid that at runtime. A log in the editor reports each growth.
+
+Configure it from **Project Settings > Less3 > Tween**, which creates `Assets/Resources/L3 Tween Settings.asset` in your project (not in the package, so it survives package updates). Or from code, before the first tween:
+```csharp
+[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+static void ConfigureTweens() => TweenManager.Configure(initialPoolSize: 1024, maxPoolSize: 8192);
+```
+
 ## Performance
 It's super good enough. If you need to animate many **thousands** of objects at once I reccomend treating that like a particle system, don't use tweens.
-- TweenObjects are pooled
-- Every object is iterated every frame, but if no tweens are active the process takes < `.01ms`
+- TweenObjects are pooled; allocation is O(1) off a free list
+- Only active tweens are iterated. A frame with no tweens running costs a single int compare
 - The biggest cost will be whatever you allocate and execute inside tweens
 - No async job burst etc... because the goal is to keep code as simple as possible
 
 >Video showing the system allocating tweens through its pool
 
 https://github.com/user-attachments/assets/805f029c-1e62-4172-bcfb-62bd22df7682
-
-## TODO
-- Init custom pool size
-- Auto pool expansion
-- Probably some perf to improve, could avoid iterating inactive tweens every frame
