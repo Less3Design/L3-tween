@@ -80,6 +80,17 @@ namespace Less3.Tweening
         public int PoolSize => tweenPool.Length;
         public int MaxPoolSize => maxPoolSize;
         public int ActiveCount => activeCount;
+        /// Ids waiting in the free ring. ActiveCount + FreeCount == PoolSize whenever no tick is in progress.
+        internal int FreeCount => freeCount;
+
+        /// <summary>
+        /// Make a manually created manager the one the Tween API talks to. Tests use this to run
+        /// without the bootstrap. Pass null to clear it.
+        /// </summary>
+        internal static void InstallInstance(TweenManager manager)
+        {
+            Instance = manager;
+        }
 
         public void Initialize()
         {
@@ -138,21 +149,38 @@ namespace Less3.Tweening
 
         private void Update()
         {
-            if (activeCount == 0) return;
-            TickActive(fixedStep: false);
+            Step(Time.deltaTime, Time.unscaledDeltaTime);
         }
 
         private void FixedUpdate()
         {
+            StepFixed(Time.fixedDeltaTime);
+        }
+
+        /// <summary>
+        /// One frame of the DeltaTime and UnscaledDeltaTime tweens. Update() calls this with the engine's times;
+        /// tests call it directly to step deterministically.
+        /// </summary>
+        internal void Step(float deltaTime, float unscaledDeltaTime)
+        {
             if (activeCount == 0) return;
-            TickActive(fixedStep: true);
+            TickActive(fixedStep: false, deltaTime, unscaledDeltaTime);
+        }
+
+        /// <summary>
+        /// One physics step of the FixedDeltaTime tweens.
+        /// </summary>
+        internal void StepFixed(float fixedDeltaTime)
+        {
+            if (activeCount == 0) return;
+            TickActive(fixedStep: true, fixedDeltaTime, fixedDeltaTime);
         }
 
         /// <summary>
         /// Tick every active tween that belongs to this step.
         /// Tweens created during the tick are appended past the captured count and first tick next frame.
         /// </summary>
-        private void TickActive(bool fixedStep)
+        private void TickActive(bool fixedStep, float deltaTime, float unscaledDeltaTime)
         {
             ticking = true;
             int count = activeCount;
@@ -163,10 +191,7 @@ namespace Less3.Tweening
                 bool isFixed = obj.deltaTimeType == TweenUpdateType.FixedDeltaTime;
                 if (isFixed != fixedStep) continue;
 
-                float deltaTime = fixedStep ? Time.fixedDeltaTime
-                    : obj.deltaTimeType == TweenUpdateType.UnscaledDeltaTime ? Time.unscaledDeltaTime
-                    : Time.deltaTime;
-                Tick(obj, deltaTime);
+                Tick(obj, obj.deltaTimeType == TweenUpdateType.UnscaledDeltaTime ? unscaledDeltaTime : deltaTime);
             }
             ticking = false;
             if (needsCompact) Compact();
