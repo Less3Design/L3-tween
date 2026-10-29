@@ -5,6 +5,11 @@ namespace Less3.Tweening
     public class TweenManager : MonoBehaviour
     {
         public static TweenManager Instance { get; private set; }
+
+        /// Set by Configure(). Takes priority over the settings asset.
+        private static int? configuredInitialSize;
+        private static int? configuredMaxSize;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Bootstrap()
         {
@@ -13,8 +18,36 @@ namespace Less3.Tweening
                 GameObject obj = new GameObject("L3 Tween Manager");
                 Instance = obj.AddComponent<TweenManager>();
                 DontDestroyOnLoad(obj);
-                Instance.Initialize();
+
+                int initial = DEFAULT_INITIAL_POOL_SIZE;
+                int max = DEFAULT_MAX_POOL_SIZE;
+                TweenSettings settings = TweenSettings.Load();
+                if (settings != null)
+                {
+                    initial = settings.initialPoolSize;
+                    max = settings.maxPoolSize;
+                }
+                Instance.Initialize(configuredInitialSize ?? initial, configuredMaxSize ?? max);
             }
+        }
+
+        /// <summary>
+        /// Code alternative to the settings asset. Call it before the first tween, e.g. from a
+        /// <c>[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]</c>.
+        /// Calling it later rebuilds the pool only while no tweens are running.
+        /// </summary>
+        public static void Configure(int initialPoolSize, int maxPoolSize)
+        {
+            configuredInitialSize = initialPoolSize;
+            configuredMaxSize = maxPoolSize;
+            if (Instance == null) return;
+
+            if (Instance.activeCount > 0)
+            {
+                Debug.LogWarning($"{nameof(TweenManager)}: Configure called while {Instance.activeCount} tweens are running; the new sizes apply on the next bootstrap.");
+                return;
+            }
+            Instance.Initialize(initialPoolSize, maxPoolSize);
         }
 
         // * ---------------------
