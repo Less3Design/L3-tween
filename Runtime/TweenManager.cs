@@ -19,7 +19,10 @@ namespace Less3.Tweening
 
         // * ---------------------
 
-        private const int TWEEN_POOL = 2048;
+        public const int DEFAULT_INITIAL_POOL_SIZE = 512;
+        public const int DEFAULT_MAX_POOL_SIZE = 4096;
+        /// Ids are ushorts, so the pool can never hold more than this.
+        public const int ABSOLUTE_MAX_POOL_SIZE = ushort.MaxValue + 1;
 
         // * ---------------------
 
@@ -39,22 +42,65 @@ namespace Less3.Tweening
         [SerializeField]
         private bool showVisualizer = false;// navigate to the dontDestroyonload scene and flip this to see a texture visualizing the state of all tweens.
 
+        private int maxPoolSize;
+
         public int PoolSize => tweenPool.Length;
+        public int MaxPoolSize => maxPoolSize;
         public int ActiveCount => activeCount;
 
         public void Initialize()
         {
-            tweenPool = new TweenObject[TWEEN_POOL];
-            freeIds = new ushort[TWEEN_POOL];
-            activeIds = new ushort[TWEEN_POOL];
-            for (int i = 0; i < TWEEN_POOL; i++)
+            Initialize(DEFAULT_INITIAL_POOL_SIZE, DEFAULT_MAX_POOL_SIZE);
+        }
+
+        /// <summary>
+        /// Build the pool. The pool starts at initialSize and doubles whenever it runs out, up to maxSize.
+        /// </summary>
+        public void Initialize(int initialSize, int maxSize)
+        {
+            maxPoolSize = Mathf.Clamp(maxSize, 1, ABSOLUTE_MAX_POOL_SIZE);
+            initialSize = Mathf.Clamp(initialSize, 1, maxPoolSize);
+
+            tweenPool = new TweenObject[initialSize];
+            freeIds = new ushort[initialSize];
+            activeIds = new ushort[initialSize];
+            for (int i = 0; i < initialSize; i++)
             {
                 tweenPool[i] = new TweenObject((ushort)i);
                 freeIds[i] = (ushort)i;
             }
             freeHead = 0;
-            freeCount = TWEEN_POOL;
+            freeCount = initialSize;
             activeCount = 0;
+        }
+
+        /// <summary>
+        /// Double the pool, up to maxPoolSize. Only called when the free ring is empty, so the ring is simply refilled.
+        /// </summary>
+        private bool TryGrow()
+        {
+            int oldSize = tweenPool.Length;
+            if (oldSize >= maxPoolSize) return false;
+            int newSize = Mathf.Min(oldSize * 2, maxPoolSize);
+
+            System.Array.Resize(ref tweenPool, newSize);
+            System.Array.Resize(ref freeIds, newSize);
+            System.Array.Resize(ref activeIds, newSize);
+            for (int i = oldSize; i < newSize; i++)
+            {
+                tweenPool[i] = new TweenObject((ushort)i);
+            }
+            // the ring is empty, so restart it at 0 and fill it with the new ids
+            freeHead = 0;
+            freeCount = 0;
+            for (int i = oldSize; i < newSize; i++)
+            {
+                freeIds[freeCount++] = (ushort)i;
+            }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"{nameof(TweenManager)}: Pool grew from {oldSize} to {newSize} (max {maxPoolSize}). Raise the initial pool size in the tween settings to avoid this at runtime.");
+#endif
+            return true;
         }
 
         private void Update()
@@ -146,9 +192,9 @@ namespace Less3.Tweening
 
         public Tween AllocateTween(float from, float to, float duration)
         {
-            if (freeCount == 0)
+            if (freeCount == 0 && !TryGrow())
             {
-                Debug.LogError($"{nameof(TweenManager)}: No free tween slots available!");
+                Debug.LogError($"{nameof(TweenManager)}: No free tween slots available! Pool is at its max of {maxPoolSize}.");
                 return default;
             }
 
