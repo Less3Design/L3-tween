@@ -22,8 +22,6 @@ void DoAnimation()
 ```
 `Tween` is a readonly struct handle, so always assign the result of `Cancel()` / `New()`. A handle goes dead the moment its tween completes or is cancelled; `tween.IsActive` tells you which. Setting a callback on a dead handle logs a warning and does nothing.
 
-Callbacks may freely cancel or start tweens, including the tween they belong to. A tween started inside a callback first ticks on the next frame.
-
 Supporting just a single use case lets us keep the business logic to only a couple hundred lines. Here is all the state we mainatin:
 ```csharp
 public class TweenObject
