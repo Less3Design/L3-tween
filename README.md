@@ -45,9 +45,9 @@ public class TweenObject
 ```
 
 ## Pool size
-The pool starts at 512 tweens and doubles whenever it runs out, up to a max of 4096 (hard limit 65536, ids are ushorts). Growth allocates a batch of objects, so set the initial size to your usual peak if you want to avoid that at runtime. A log in the editor reports each growth.
+The pool starts at 512 tweens and doubles whenever it runs out, up to a max of 4096 (hard limit 65536, ids are ushorts).
 
-Configure it from **Project Settings > Less3 > Tween**, which creates `Assets/Resources/L3 Tween Settings.asset` in your project (not in the package, so it survives package updates). Or from code, before the first tween:
+Configure it from **Project Settings > Less3 > Tween** or from code, before the first tween:
 ```csharp
 [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
 static void ConfigureTweens() => TweenManager.Configure(initialPoolSize: 1024, maxPoolSize: 8192);
